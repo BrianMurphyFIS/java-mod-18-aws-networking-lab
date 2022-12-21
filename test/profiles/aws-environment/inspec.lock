@@ -1,0 +1,8 @@
+---
+lockfile_version: 1
+depends:
+- name: inspec-aws
+  resolved_source:
+    path: "/deps/inspec-aws.tar.gz"
+    sha256: 06a775df12ea2371df1ca630a520ff032ddfa9f3e5c820ef3c9788cbe6017907
+  version_constraints: []

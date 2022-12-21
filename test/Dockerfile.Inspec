@@ -1,0 +1,42 @@
+FROM ubuntu:20.04
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y locales gcc g++ make git wget postgresql-client iputils-ping net-tools python2 python3 python3-pip jq software-properties-common && \
+    apt-add-repository -y ppa:brightbox/ruby-ng && apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y ruby2.7 ruby2.7-dev && \
+    locale-gen en_US.UTF-8 && \
+    update-locale LANG=en_US.UTF-8 && \
+    wget https://download.docker.com/linux/ubuntu/dists/focal/pool/stable/$(dpkg --print-architecture)/docker-ce-cli_20.10.9~3-0~ubuntu-focal_$(dpkg --print-architecture).deb && \
+    dpkg -i docker-ce-cli_20.10.9~3-0~ubuntu-focal_$(dpkg --print-architecture).deb && \
+    pip install cqlsh==6.0.1 && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Install Google Cloud Cli tools
+RUN wget https://dl.google.com/dl/cloudsdk/channels/rapid/downloads/google-cloud-cli-402.0.0-linux-$(uname -p).tar.gz && \
+    tar -xf google-cloud-cli-402.0.0-linux-$(uname -p).tar.gz && \
+    /google-cloud-sdk/install.sh --usage-reporting false --path-update true --command-completion false --quiet
+
+ENV LANG=en_US.UTF-8 \
+    LANGUAGE=en_US:en \
+    LC_ALL=en_US.UTF-8
+
+# We don't want our students accepting licensing aggrements out of hand, so installing the Inspec Binary from source.
+RUN gem install --no-document inspec -v 5.18.14 && gem install --no-document k8s-ruby -v 0.12.0  && gem install --no-document train-kubernetes -v 0.1.10 
+RUN git clone https://github.com/inspec/inspec && \
+    cd inspec/inspec-bin && git checkout v5.18.14 && \
+    sed -i 's/enforce_license: true/enforce_license: false/' ./bin/inspec && \
+    gem build inspec-bin.gemspec && gem install inspec-*.gem
+RUN inspec plugin install train-kubernetes
+
+# Installing inspec cloud resources
+RUN mkdir /deps && cd /deps && wget https://github.com/inspec/inspec-aws/archive/refs/tags/v1.83.43.tar.gz -O inspec-aws.tar.gz && \
+    wget https://github.com/inspec/inspec-gcp/archive/refs/tags/v1.10.37.tar.gz -O inspec-gcp.tar.gz && \
+    wget https://github.com/inspec/inspec-azure/archive/refs/tags/v1.118.5.tar.gz -O inspec-azure.tar.gz && \
+    mkdir inspec-azure && tar xfv inspec-azure.tar.gz -C inspec-azure --strip-components=1 && \
+    git clone https://github.com/inspec/inspec-k8s && cd inspec-k8s && git checkout 75b0169
+
+
+VOLUME ["/test"]
+WORKDIR /test
+
+COPY test.sh /test.sh
+CMD /test.sh

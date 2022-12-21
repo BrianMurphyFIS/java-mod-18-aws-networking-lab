@@ -1,0 +1,8 @@
+name: aws-environment
+title: AWS Environment Profile
+version: 0.1.0
+depends:
+ - name: inspec-aws
+   path: /deps/inspec-aws.tar.gz
+supports:
+ - platform: aws
